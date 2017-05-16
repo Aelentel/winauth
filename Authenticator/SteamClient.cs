@@ -47,13 +47,10 @@ namespace WinAuth
 		/// <summary>
 		/// URLs for all mobile services
 		/// </summary>
-		private const string COMMUNITY_DOMAIN = "steamcommunity.com";
-		private const string COMMUNITY_BASE = "https://" + COMMUNITY_DOMAIN;
-		private static string WEBAPI_BASE = "https://api.steampowered.com";
-		private static string API_GETWGTOKEN = WEBAPI_BASE + "/IMobileAuthService/GetWGToken/v0001";
-		private static string API_LOGOFF = WEBAPI_BASE + "/ISteamWebUserPresenceOAuth/Logoff/v0001";
-		private static string API_LOGON = WEBAPI_BASE + "/ISteamWebUserPresenceOAuth/Logon/v0001";
-		private static string API_POLLSTATUS = WEBAPI_BASE + "/ISteamWebUserPresenceOAuth/PollStatus/v0001";
+		private static string API_GETWGTOKEN = Steam.WEBAPI_BASE + "/IMobileAuthService/GetWGToken/v0001";
+		private static string API_LOGOFF = Steam.WEBAPI_BASE + "/ISteamWebUserPresenceOAuth/Logoff/v0001";
+		private static string API_LOGON = Steam.WEBAPI_BASE + "/ISteamWebUserPresenceOAuth/Logon/v0001";
+		//private static string API_POLLSTATUS = Steam.WEBAPI_BASE + "/ISteamWebUserPresenceOAuth/PollStatus/v0001";
 
 		/// <summary>
 		/// Default mobile user agent
@@ -291,7 +288,7 @@ namespace WinAuth
 			public override string ToString()
 			{
 				return "{\"steamid\":\"" + (this.SteamId ?? string.Empty) + "\","
-					+ "\"cookies\":\"" + this.Cookies.GetCookieHeader(new Uri(COMMUNITY_BASE + "/")) + "\","
+					+ "\"cookies\":\"" + this.Cookies.GetCookieHeader(new Uri(Steam.COMMUNITY_BASE + "/")) + "\","
 					+ "\"oauthtoken\":\"" + (this.OAuthToken ?? string.Empty) + "\","
 					// + "\"umqid\":\"" + (this.UmqId ?? string.Empty) + "\","
 					+ "\"confs\":" + (this.Confirmations != null ? this.Confirmations.ToString() : "null")
@@ -316,7 +313,7 @@ namespace WinAuth
 					this.Cookies = new CookieContainer();
 
 					// Net3.5 has a bug that prepends "." to domain, e.g. ".steamcommunity.com"
-					var uri = new Uri(COMMUNITY_BASE + "/");
+					var uri = new Uri(Steam.COMMUNITY_BASE + "/");
 					var match = Regex.Match(token.Value<string>(), @"([^=]+)=([^;]*);?", RegexOptions.Singleline);
 					while (match.Success == true)
 					{
@@ -525,7 +522,7 @@ namespace WinAuth
 				if (this.Session.Cookies.Count == 0)
 				{
 					// .Net3.5 has a bug in CookieContainer that prepends a "." to the domain, i.e. ".steamcommunity.com"
-					var cookieuri = new Uri(COMMUNITY_BASE + "/");
+					var cookieuri = new Uri(Steam.COMMUNITY_BASE + "/");
 					this.Session.Cookies.Add(cookieuri, new Cookie("mobileClientVersion", "3067969+%282.1.3%29"));
 					this.Session.Cookies.Add(cookieuri, new Cookie("mobileClient", "android"));
 					this.Session.Cookies.Add(cookieuri, new Cookie("steamid", ""));
@@ -536,7 +533,7 @@ namespace WinAuth
 					NameValueCollection headers = new NameValueCollection();
 					headers.Add("X-Requested-With", "com.valvesoftware.android.steam.community");
 
-					response = GetString(COMMUNITY_BASE + "/mobilelogin?oauth_client_id=DE45CD61&oauth_scope=read_profile%20write_profile%20read_client%20write_client", "GET", null, headers);
+					response = GetString(Steam.COMMUNITY_BASE + "/mobilelogin?oauth_client_id=" + Steam.OAUTH_CLIENT_ID + "&oauth_scope=read_profile%20write_profile%20read_client%20write_client", "GET", null, headers);
 				}
 
 				// Steam strips any non-ascii chars from username and password
@@ -545,7 +542,7 @@ namespace WinAuth
 
 				// get the user's RSA key
 				data.Add("username", username);
-				response = GetString(COMMUNITY_BASE + "/mobilelogin/getrsakey", "POST", data);
+				response = GetString(Steam.COMMUNITY_BASE + "/mobilelogin/getrsakey", "POST", data);
 				var rsaresponse = JObject.Parse(response);
 				if (rsaresponse.SelectToken("success").Value<bool>() != true)
 				{
@@ -580,10 +577,10 @@ namespace WinAuth
 				//data.Add("emailsteamid", (string.IsNullOrEmpty(emailcode) == false ? this.SteamId ?? string.Empty : string.Empty));
 				data.Add("rsatimestamp", rsaresponse.SelectToken("timestamp").Value<string>());
 				data.Add("remember_login", "false");
-				data.Add("oauth_client_id", "DE45CD61");
+				data.Add("oauth_client_id", Steam.OAUTH_CLIENT_ID);
 				data.Add("oauth_scope", "read_profile write_profile read_client write_client");
 				data.Add("donotache", new DateTime().ToUniversalTime().Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds.ToString());
-				response = GetString(COMMUNITY_BASE + "/mobilelogin/dologin/", "POST", data);
+				response = GetString(Steam.COMMUNITY_BASE + "/mobilelogin/dologin/", "POST", data);
 				Dictionary<string, object> loginresponse = JsonConvert.DeserializeObject<Dictionary<string, object>>(response);
 
 				if (loginresponse.ContainsKey("emailsteamid") == true)
@@ -608,7 +605,7 @@ namespace WinAuth
 					{
 						this.RequiresCaptcha = true;
 						this.CaptchaId = (string)loginresponse["captcha_gid"];
-						this.CaptchaUrl = COMMUNITY_BASE + "/public/captcha.php?gid=" + this.CaptchaId;
+						this.CaptchaUrl = Steam.COMMUNITY_BASE + "/public/captcha.php?gid=" + this.CaptchaId;
 					}
 
 					// require email auth
@@ -710,7 +707,7 @@ namespace WinAuth
 					return false;
 				}
 
-				var cookieuri = new Uri(COMMUNITY_BASE + "/");
+				var cookieuri = new Uri(Steam.COMMUNITY_BASE + "/");
 				this.Session.Cookies.Add(cookieuri, new Cookie("steamLogin", this.Session.SteamId + "||" + token.Value<string>()));
 
 				token = json.SelectToken("response.token_secure");
@@ -1112,7 +1109,7 @@ namespace WinAuth
 			data.Add("m", "android");
 			data.Add("tag", "conf");
 
-			string html = GetString(COMMUNITY_BASE + "/mobileconf/conf", "GET", data);
+			string html = GetString(Steam.COMMUNITY_BASE + "/mobileconf/conf", "GET", data);
 
 			// save last html for confirmations details
 			ConfirmationsHtml = html;
@@ -1202,7 +1199,7 @@ namespace WinAuth
 		public string GetConfirmationDetails(Confirmation trade)
 		{
 			// build details URL
-			string url = COMMUNITY_BASE + "/mobileconf/details/" + trade.Id + "?" + ConfirmationsQuery;
+			string url = Steam.COMMUNITY_BASE + "/mobileconf/details/" + trade.Id + "?" + ConfirmationsQuery;
 
 			string response = this.GetString(url);
 			if (response.IndexOf("success") == -1)
@@ -1258,7 +1255,7 @@ namespace WinAuth
 
 			try
 			{
-				string response = GetString(COMMUNITY_BASE + "/mobileconf/ajaxop", "GET", data);
+				string response = GetString(Steam.COMMUNITY_BASE + "/mobileconf/ajaxop", "GET", data);
 				if (string.IsNullOrEmpty(response) == true)
 				{
 					this.Error = "Blank response";
@@ -1392,9 +1389,13 @@ namespace WinAuth
 				request.Method = method;
 				request.Accept = "text/javascript, text/html, application/xml, text/xml, */*";
 				request.ServicePoint.Expect100Continue = false;
+				if (Steam.UNIVERSE == Steam.EUniverse.k_EUniverseDev)
+				{
+					request.ServerCertificateValidationCallback += (sender, certificate, chain, sslPolicyErrors) => true;
+				}
 				request.UserAgent = USERAGENT;
 				request.AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip;
-				request.Referer = COMMUNITY_BASE;
+				request.Referer = Steam.COMMUNITY_BASE;
 				if (headers != null)
 				{
 					request.Headers.Add(headers);
