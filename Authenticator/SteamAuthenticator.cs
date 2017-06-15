@@ -91,13 +91,6 @@ namespace WinAuth
 		private const string STEAM_ISSUER = "Steam";
 
 		/// <summary>
-		/// URLs for all mobile services
-		/// </summary>
-		private static string COMMUNITY_BASE = "https://steamcommunity.com";
-		private static string WEBAPI_BASE = "https://api.steampowered.com";
-		private static string SYNC_URL = "https://api.steampowered.com:443/ITwoFactorService/QueryTime/v0001";
-
-		/// <summary>
 		/// Character set for authenticator code
 		/// </summary>
 		private static char[] STEAMCHARS = new char[] {
@@ -296,9 +289,13 @@ namespace WinAuth
 			request.Method = method;
 			request.Accept = "text/javascript, text/html, application/xml, text/xml, */*";
 			request.ServicePoint.Expect100Continue = false;
+			if (Steam.UNIVERSE == Steam.EUniverse.k_EUniverseDev)
+			{
+				request.ServerCertificateValidationCallback += (sender, certificate, chain, sslPolicyErrors) => true;
+			}
 			request.UserAgent = "Mozilla/5.0 (Linux; U; Android 4.1.1; en-us; Google Nexus 4 - 4.1.1 - API 16 - 768x1280 Build/JRO03S) AppleWebKit/534.30 (KHTML, like Gecko) Version/4.0 Mobile Safari/534.30";
 			request.AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip;
-			request.Referer = COMMUNITY_BASE; // + "/mobilelogin?oauth_client_id=DE45CD61&oauth_scope=read_profile%20write_profile%20read_client%20write_client";
+			request.Referer = Steam.COMMUNITY_BASE; // + "/mobilelogin?oauth_client_id=" + Steam.OAUTH_CLIENT_ID + "&oauth_scope=read_profile%20write_profile%20read_client%20write_client";
 			if (headers != null)
 			{
 				request.Headers.Add(headers);
@@ -374,17 +371,17 @@ namespace WinAuth
 					// get session
 					if (cookies.Count == 0)
 					{
-						cookies.Add(new Uri(COMMUNITY_BASE + "/"), new Cookie("mobileClientVersion", "3067969+%282.1.3%29"));
-						cookies.Add(new Uri(COMMUNITY_BASE + "/"), new Cookie("mobileClient", "android"));
-						cookies.Add(new Uri(COMMUNITY_BASE + "/"), new Cookie("steamid", ""));
-						cookies.Add(new Uri(COMMUNITY_BASE + "/"), new Cookie("steamLogin", ""));
-						cookies.Add(new Uri(COMMUNITY_BASE + "/"), new Cookie("Steam_Language", "english"));
-						cookies.Add(new Uri(COMMUNITY_BASE + "/"), new Cookie("dob", ""));
+						cookies.Add(new Uri(Steam.COMMUNITY_BASE + "/"), new Cookie("mobileClientVersion", "3067969+%282.1.3%29"));
+						cookies.Add(new Uri(Steam.COMMUNITY_BASE + "/"), new Cookie("mobileClient", "android"));
+						cookies.Add(new Uri(Steam.COMMUNITY_BASE + "/"), new Cookie("steamid", ""));
+						cookies.Add(new Uri(Steam.COMMUNITY_BASE + "/"), new Cookie("steamLogin", ""));
+						cookies.Add(new Uri(Steam.COMMUNITY_BASE + "/"), new Cookie("Steam_Language", "english"));
+						cookies.Add(new Uri(Steam.COMMUNITY_BASE + "/"), new Cookie("dob", ""));
 
 						NameValueCollection headers = new NameValueCollection();
 						headers.Add("X-Requested-With", "com.valvesoftware.android.steam.community");
 
-						response = Request("https://steamcommunity.com/mobilelogin?oauth_client_id=DE45CD61&oauth_scope=read_profile%20write_profile%20read_client%20write_client", "GET", null, cookies, headers);
+						response = Request("https://steamcommunity.com/mobilelogin?oauth_client_id=" + Steam.OAUTH_CLIENT_ID + "&oauth_scope=read_profile%20write_profile%20read_client%20write_client", "GET", null, cookies, headers);
 					}
 
 					// Steam strips any non-ascii chars from username and password
@@ -393,7 +390,7 @@ namespace WinAuth
 
 					// get the user's RSA key
 					data.Add("username", state.Username);
-					response = Request(COMMUNITY_BASE + "/mobilelogin/getrsakey", "POST", data, cookies);
+					response = Request(Steam.COMMUNITY_BASE + "/mobilelogin/getrsakey", "POST", data, cookies);
 					var rsaresponse = JObject.Parse(response);
 					if (rsaresponse.SelectToken("success").Value<bool>() != true)
 					{
@@ -425,10 +422,10 @@ namespace WinAuth
 					data.Add("emailsteamid", (state.EmailAuthText != null ? state.SteamId ?? string.Empty : string.Empty));
 					data.Add("rsatimestamp", rsaresponse.SelectToken("timestamp").Value<string>());
 					data.Add("remember_login", "false");
-					data.Add("oauth_client_id", "DE45CD61");
+					data.Add("oauth_client_id", Steam.OAUTH_CLIENT_ID);
 					data.Add("oauth_scope", "read_profile write_profile read_client write_client");
 					data.Add("donotache", new DateTime().ToUniversalTime().Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds.ToString());
-					response = Request(COMMUNITY_BASE + "/mobilelogin/dologin/", "POST", data, cookies);
+					response = Request(Steam.COMMUNITY_BASE + "/mobilelogin/dologin/", "POST", data, cookies);
 					Dictionary<string, object> loginresponse = JsonConvert.DeserializeObject<Dictionary<string, object>>(response);
 
 					if (loginresponse.ContainsKey("emailsteamid") == true)
@@ -441,7 +438,7 @@ namespace WinAuth
 					{
 						state.RequiresCaptcha = true;
 						state.CaptchaId = (string)loginresponse["captcha_gid"];
-						state.CaptchaUrl = COMMUNITY_BASE + "/public/captcha.php?gid=" + state.CaptchaId;
+						state.CaptchaUrl = Steam.COMMUNITY_BASE + "/public/captcha.php?gid=" + state.CaptchaId;
 					}
 					else
 					{
@@ -507,9 +504,12 @@ namespace WinAuth
 				// login to webapi
 				data.Clear();
 				data.Add("access_token", state.OAuthToken);
-				response = Request(WEBAPI_BASE + "/ISteamWebUserPresenceOAuth/Logon/v0001", "POST", data);
+				response = Request(Steam.WEBAPI_BASE + "/ISteamWebUserPresenceOAuth/Logon/v0001", "POST", data, cookies);
 
-				var sessionid = cookies.GetCookies(new Uri(COMMUNITY_BASE + "/"))["sessionid"].Value;
+				if (Steam.UNIVERSE == Steam.EUniverse.k_EUniverseDev)
+					cookies.Add(new Uri(Steam.COMMUNITY_BASE + "/"), cookies.GetCookies(new Uri(Steam.COOKIE_COMMUNITY_BASE + "/")));
+
+				var sessionid = cookies.GetCookies(new Uri(Steam.COMMUNITY_BASE + "/"))["sessionid"].Value;
 
 				if (state.RequiresActivation == false)
 				{
@@ -518,7 +518,7 @@ namespace WinAuth
 					data.Add("arg", "null");
 					data.Add("sessionid", sessionid);
 
-					response = Request(COMMUNITY_BASE + "/steamguard/phoneajax", "POST", data, cookies);
+					response = Request(Steam.COMMUNITY_BASE + "/steamguard/phoneajax", "POST", data, cookies);
 					var jsonresponse = JObject.Parse(response);
 					bool hasPhone = jsonresponse.SelectToken("has_phone").Value<Boolean>();
 					if (hasPhone == false)
@@ -530,7 +530,7 @@ namespace WinAuth
 						return false;
 					}
 
-					//response = Request(COMMUNITY_BASE + "/steamguard/phone_checksms?bForTwoFactor=1&bRevoke2fOnCancel=", "GET", null, cookies);
+					//response = Request(Steam.COMMUNITY_BASE + "/steamguard/phone_checksms?bForTwoFactor=1&bRevoke2fOnCancel=", "GET", null, cookies);
 
 					// add a new authenticator
 					data.Clear();
@@ -540,7 +540,7 @@ namespace WinAuth
 					data.Add("authenticator_type", "1");
 					data.Add("device_identifier", deviceId);
 					data.Add("sms_phone_id", "1");
-					response = Request(WEBAPI_BASE + "/ITwoFactorService/AddAuthenticator/v0001", "POST", data);
+					response = Request(Steam.WEBAPI_BASE + "/ITwoFactorService/AddAuthenticator/v0001", "POST", data);
 					var tfaresponse = JObject.Parse(response);
 					if (response.IndexOf("status") == -1 && tfaresponse.SelectToken("response.status").Value<int>() == 84)
 					{
@@ -602,7 +602,7 @@ namespace WinAuth
 				{
 					data.Add("authenticator_code", this.CalculateCode(false));
 					data.Add("authenticator_time", this.ServerTime.ToString());
-					response = Request(WEBAPI_BASE + "/ITwoFactorService/FinalizeAddAuthenticator/v0001", "POST", data);
+					response = Request(Steam.WEBAPI_BASE + "/ITwoFactorService/FinalizeAddAuthenticator/v0001", "POST", data);
 					var finalizeresponse = JObject.Parse(response);
 					if (response.IndexOf("status") != -1 && finalizeresponse.SelectToken("response.status").Value<int>() == INVALID_ACTIVATION_CODE)
 					{
@@ -649,7 +649,7 @@ namespace WinAuth
 				data.Add("access_token", state.OAuthToken);
 				data.Add("steamid", state.SteamId);
 				data.Add("email_type", "2");
-				response = Request(WEBAPI_BASE + "/ITwoFactorService/SendEmail/v0001", "POST", data);
+				response = Request(Steam.WEBAPI_BASE + "/ITwoFactorService/SendEmail/v0001", "POST", data);
 
 				return true;
 			}
@@ -682,7 +682,7 @@ namespace WinAuth
 
 			try
 			{
-				var response = Request(SYNC_URL, "POST", null, null, null, SYNC_TIMEOUT);
+				var response = Request(Steam.TWOFACTOR_SYNC_URL, "POST", null, null, null, SYNC_TIMEOUT);
 				var json = JObject.Parse(response);
 
 				// get servertime in ms

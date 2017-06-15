@@ -131,6 +131,7 @@
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
     <Compile Include="SteamAuthenticator.cs" />
+    <Compile Include="SteamCommon.cs" />
     <Compile Include="TrionAuthenticator.cs" />
     <Compile Include="GoogleAuthenticator.cs" />
     <Compile Include="GuildWarsAuthenticator.cs" />
