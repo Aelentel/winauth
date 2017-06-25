@@ -14,7 +14,7 @@
     <TargetFrameworkProfile>
     </TargetFrameworkProfile>
     <IsWebBootstrapper>true</IsWebBootstrapper>
-    <AssemblyVersion>3.5.1.2</AssemblyVersion>
+    <AssemblyVersion>3.5.2.0</AssemblyVersion>
     <PrimaryVersionType>AssemblyVersionAttribute</PrimaryVersionType>
     <AssemblyInfoFilePath>Properties\AssemblyInfo.cs</AssemblyInfoFilePath>
     <UpdateAssemblyVersion>True</UpdateAssemblyVersion>
@@ -24,7 +24,7 @@
     <AssemblyFileVersionSettings>None.None.IncrementOnDemandWithReset.Increment</AssemblyFileVersionSettings>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
-    <PublishUrl>f:\cdm\Projects\WinAuth\winauth.com\downloads\</PublishUrl>
+    <PublishUrl>S:\WinAuth\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Web</InstallFrom>
     <UpdateEnabled>true</UpdateEnabled>
@@ -34,19 +34,19 @@
     <UpdatePeriodically>true</UpdatePeriodically>
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>false</MapFileExtensions>
-    <InstallUrl>https://winauth.com/downloads/</InstallUrl>
-    <UpdateUrl>https://winauth.com/downloads/</UpdateUrl>
-    <SupportUrl>https://winauth.com</SupportUrl>
-    <ErrorReportUrl>https://code.google.com/p/winauth/issues/list</ErrorReportUrl>
+    <InstallUrl>https://www.uplinklabs.net/projects/winauth/downloads/</InstallUrl>
+    <UpdateUrl>https://www.uplinklabs.net/projects/winauth/downloads/</UpdateUrl>
+    <SupportUrl>https://www.uplinklabs.net/</SupportUrl>
+    <ErrorReportUrl>https://github.com/tycho/winauth/issues</ErrorReportUrl>
     <TargetCulture>en</TargetCulture>
     <ProductName>WinAuth</ProductName>
-    <PublisherName>Colin Mackie</PublisherName>
+    <PublisherName>Steven Noonan</PublisherName>
     <MinimumRequiredVersion>3.0.10.0</MinimumRequiredVersion>
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>publish.htm</WebPage>
     <OpenBrowserOnPublish>false</OpenBrowserOnPublish>
-    <ApplicationRevision>3</ApplicationRevision>
-    <ApplicationVersion>3.5.1.3</ApplicationVersion>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>3.5.2.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <CreateDesktopShortcut>true</CreateDesktopShortcut>
     <PublishWizardCompleted>true</PublishWizardCompleted>
@@ -90,7 +90,7 @@
     <ApplicationIcon>winauth.ico</ApplicationIcon>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestCertificateThumbprint>F61975099D14D6E0C04E21747F96A289F5AA9989</ManifestCertificateThumbprint>
+    <ManifestCertificateThumbprint>D1EE4EE24B5827D939A8D479139A3F860DCAB4AF</ManifestCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup Condition="Exists('$(MSBuildProjectDirectory)codesign.pfx')">
     <ManifestKeyFile>codesign.pfx</ManifestKeyFile>
@@ -109,9 +109,8 @@
   <PropertyGroup>
     <SignAssembly>false</SignAssembly>
   </PropertyGroup>
-  <PropertyGroup>
-    <AssemblyOriginatorKeyFile>
-    </AssemblyOriginatorKeyFile>
+  <PropertyGroup Condition="Exists('$(MSBuildProjectDirectory)codesign.pfx')">
+    <AssemblyOriginatorKeyFile>codesign.pfx</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <PropertyGroup>
     <ManifestTimestampUrl>http://timestamp.verisign.com/scripts/timestamp.dll</ManifestTimestampUrl>
@@ -120,7 +119,7 @@
     <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
   </PropertyGroup>
   <PropertyGroup>
-    <SignManifests>false</SignManifests>
+    <SignManifests>true</SignManifests>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
     <DebugSymbols>true</DebugSymbols>
@@ -233,7 +232,9 @@
     <Compile Include="AddTrionAuthenticator.designer.cs">
       <DependentUpon>AddTrionAuthenticator.cs</DependentUpon>
     </Compile>
-    <Compile Include="AuthenticatorListBox.cs" />
+    <Compile Include="AuthenticatorListBox.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="BetaForm.cs">
       <SubType>Form</SubType>
     </Compile>
