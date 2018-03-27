@@ -248,7 +248,7 @@ namespace WinAuth
 				throw;
 			}
 
-			SaveToRegistry(config);
+			config.WriteSetting(WINAUTHREGKEY_CONFIGBACKUP, null);
 
       return config;
     }
@@ -355,70 +355,6 @@ namespace WinAuth
       }
     }
 
-    /// <summary>
-    /// Save a PGP encrypted version of the config into the registry for recovery
-		/// 
-		/// Issue#133: this just compounds each time we load, and is really pointless so we are removing it
-		/// but in the meantime we have to clear it out
-		/// </summary>
-    /// <param name="config"></param>
-		private static void SaveToRegistry(WinAuthConfig config)
-    {
-			config.WriteSetting(WINAUTHREGKEY_CONFIGBACKUP, null);
-    }
-
-		/// <summary>
-		/// Save a PGP encrypted version of an authenticator into the registry for recovery
-		/// </summary>
-		/// <param name="wa">WinAuthAuthenticator instance</param>
-		public static void SaveToRegistry(WinAuthConfig config, WinAuthAuthenticator wa)
-		{
-			if (config == null || wa == null || wa.AuthenticatorData == null)
-			{
-				return;
-			}
-      
-			using (HashAlgorithm sha = Authenticator.SafeHasher("SHA256"))
-			{
-				// get a hash based on the authenticator key
-				string authkey = Convert.ToBase64String(sha.ComputeHash(Encoding.UTF8.GetBytes(wa.AuthenticatorData.SecretData)));
-
-				// save the PGP encrypted key
-				using (EncodedStringWriter sw = new EncodedStringWriter(Encoding.UTF8))
-				{
-					XmlWriterSettings xmlsettings = new XmlWriterSettings();
-					xmlsettings.Indent = true;
-					using (XmlWriter xw = XmlWriter.Create(sw, xmlsettings))
-					{
-						xw.WriteStartElement("WinAuth");
-						xw.WriteAttributeString("version", System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(2));
-						wa.WriteXmlString(xw);
-						xw.WriteEndElement();
-					}
-
-					string pgpkey = string.IsNullOrEmpty(config.PGPKey) == false ? config.PGPKey : WinAuthHelper.WINAUTH_PGP_PUBLICKEY;
-					config.WriteSetting(WINAUTHREGKEY_BACKUP + "\\" + authkey, PGPEncrypt(sw.ToString(), pgpkey));
-				}
-			}
-		}
-
-		/// <summary>
-		/// Read the encrpyted backup registry entries to be sent within the diagnostics report
-		/// </summary>
-		public static string ReadBackupFromRegistry(WinAuthConfig config)
-		{
-			StringBuilder buffer = new StringBuilder();
-			foreach (string name in config.ReadSettingKeys(WINAUTHREGKEY_BACKUP))
-			{
-				object val = ReadRegistryValue(name);
-				if (val != null)
-				{
-					buffer.Append(name + "=" + Convert.ToString(val)).Append(Environment.NewLine);
-				}
-			}
-
-			return buffer.ToString();
-		}
 
 		/// <summary>
     /// Set up winauth so it will start with Windows by adding entry into registry

@@ -70,6 +70,10 @@ namespace WinAuth
 			{
 				dataText.Text = WinAuthHelper.PGPEncrypt(BuildDiagnostics(), WinAuthHelper.WINAUTH_PGP_PUBLICKEY);
 			}
+			catch (EmptyReportException)
+			{
+				dataText.Text = "No data available for error report.";
+			}
 			catch (Exception ex)
 			{
 				dataText.Text = string.Format("{0}\n\n{1}", ex.Message, new System.Diagnostics.StackTrace(ex).ToString());
@@ -83,45 +87,6 @@ namespace WinAuth
 		private string BuildDiagnostics()
 		{
 			StringBuilder diag = new StringBuilder();
-
-			if (this.Config != null)
-			{
-				// clone the current config so we can extract key in case machine/user encrypted
-				WinAuthConfig clone = this.Config.Clone() as WinAuthConfig;
-				clone.PasswordType = Authenticator.PasswordTypes.None;
-
-				// add the config and authenticator
-				try
-				{
-					StringBuilder xml = new StringBuilder();
-					XmlWriterSettings settings = new XmlWriterSettings();
-					settings.Indent = true;
-					using (XmlWriter writer = XmlWriter.Create(xml, settings))
-					{
-						clone.WriteXmlString(writer);
-					}
-					diag.Append("--CURRENT CONFIG--").Append(Environment.NewLine);
-					diag.Append(xml.ToString()).Append(Environment.NewLine).Append(Environment.NewLine);
-				}
-				catch (Exception ex)
-				{
-					diag.Append(ex.Message).Append(Environment.NewLine).Append(Environment.NewLine);
-				}
-			}
-
-			// add each of the entries from the registry
-			if (this.Config != null)
-			{
-				diag.Append("--REGISTRY--").Append(Environment.NewLine);
-				diag.Append(WinAuthHelper.ReadBackupFromRegistry(this.Config)).Append(Environment.NewLine).Append(Environment.NewLine);
-			}
-
-			// add current config file
-			if (string.IsNullOrEmpty(ConfigFileContents) == false)
-			{
-				diag.Append("--CONFIGFILE--").Append(Environment.NewLine);
-				diag.Append(ConfigFileContents).Append(Environment.NewLine).Append(Environment.NewLine);
-			}
 
 			// add winauth log
 			string dir = Path.Combine(System.Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), WinAuthMain.APPLICATION_NAME);
@@ -161,8 +126,14 @@ namespace WinAuth
 				}
 			}
 
-			return diag.ToString();
+			string result = diag.ToString();
+			if (result.Length == 0)
+				throw new EmptyReportException();
+
+			return result;
 		}
 
 	}
+
+	public class EmptyReportException : Exception { }
 }

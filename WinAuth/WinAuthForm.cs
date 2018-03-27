@@ -486,9 +486,6 @@ namespace WinAuth
 				}
 				authenticator.Name = importedName;
 
-				// save off any new authenticators as a backup
-				WinAuthHelper.SaveToRegistry(this.Config, authenticator);
-
 				// first time we prompt for protection and set out main settings from imported config
 				if (this.Config.Count == 0)
 				{
@@ -580,9 +577,6 @@ namespace WinAuth
 
 					foreach (var auth in imported)
 					{
-						// save off any new authenticators as a backup
-						WinAuthHelper.SaveToRegistry(this.Config, auth);
-
 						// add to main list
 						this.Config.Add(auth);
 						loadAuthenticatorList(auth);
@@ -1835,9 +1829,6 @@ namespace WinAuth
 
 				if (added == true)
 				{
-					// save off any new authenticators as a backup
-					WinAuthHelper.SaveToRegistry(this.Config, winauthauthenticator);
-
 					// first time we prompt for protection
 					if (this.Config.Count == 0)
 					{
